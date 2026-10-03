@@ -1,0 +1,2412 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Sprout, 
+  Calculator, 
+  TrendingUp, 
+  Award, 
+  Calendar, 
+  MessageSquare, 
+  MapPin, 
+  FileText, 
+  Settings, 
+  Menu, 
+  X, 
+  Plus, 
+  Trash2, 
+  Edit3, 
+  CheckCircle2, 
+  AlertTriangle, 
+  HelpCircle, 
+  Download, 
+  Printer, 
+  Copy, 
+  Save, 
+  ChevronRight, 
+  Leaf, 
+  Droplets, 
+  Sun, 
+  BarChart2, 
+  Info, 
+  UserCheck, 
+  Clock, 
+  Search,
+  Filter,
+  Check,
+  Calendar as CalendarIcon,
+  RefreshCw
+} from 'lucide-react';
+
+const STORAGE_KEYS = {
+  LANDS: 'tani_cerdas_lands',
+  FERTILIZER_LOGS: 'tani_cerdas_fert_logs',
+  GERMINATION_LOGS: 'tani_cerdas_germ_logs',
+  GROWTH_LOGS: 'tani_cerdas_growth_logs',
+  CULTIVATION_LOGS: 'tani_cerdas_cult_logs',
+  CALENDAR_LOGS: 'tani_cerdas_cal_logs',
+  COMPLAINTS: 'tani_cerdas_complaints'
+};
+
+// Initial Demo Lands Data
+const INITIAL_LANDS = [
+  {
+    id: 'land-1',
+    name: 'Petak Bawang Merah Utama',
+    location: 'Desa Sukamaju, Blora',
+    area: 16,
+    unit: 'm2',
+    soilType: 'Lempung Berpasir',
+    commodity: 'Bawang Merah',
+    variety: 'Batu Ijo',
+    plantingDate: '2026-02-10',
+    status: 'Vegetatif'
+  },
+  {
+    id: 'land-2',
+    name: 'Lahan Jagung Padat',
+    location: 'Blok C Kelompok Tani Tani Makmur',
+    area: 0.5,
+    unit: 'ha',
+    soilType: 'Aluvial',
+    commodity: 'Jagung Hibrida',
+    variety: 'BISI 18',
+    plantingDate: '2026-01-15',
+    status: 'Generatif'
+  }
+];
+
+// Initial Fertilizer Settings
+const DEFAULT_FERTILIZER_SPECS = {
+  ureaN: 46,
+  sp36P: 36,
+  kclK: 60,
+  caco3Ca: 40,
+  kieseriteMg: 24,
+  zaN: 21,
+  zaS: 24
+};
+
+// Default Fertilizer Recommendation for 16 m2 sample case
+const DEFAULT_RECOMMENDATION = {
+  n: 250,     // kg/ha N
+  p2o5: 300,  // kg/ha P2O5
+  k2o: 150,   // kg/ha K2O
+  ca: 2000,   // kg/ha Ca
+  mg: 60,     // kg/ha Mg
+  s: 50       // kg/ha S
+};
+
+// Initial Demo Germination Logs
+const INITIAL_GERMINATION = [
+  {
+    id: 'germ-1',
+    landId: 'land-1',
+    commodity: 'Bawang Merah',
+    variety: 'Batu Ijo',
+    testDate: '2026-02-05',
+    totalTested: 100,
+    totalSprouted: 88,
+    notes: 'Perkecambahan seragam di media baki semai.',
+    goodThreshold: 85,
+    mediumThreshold: 70
+  },
+  {
+    id: 'germ-2',
+    landId: 'land-2',
+    commodity: 'Jagung Hibrida',
+    variety: 'BISI 18',
+    testDate: '2026-01-10',
+    totalTested: 200,
+    totalSprouted: 150,
+    notes: 'Sebagian benih terendam air berlebih.',
+    goodThreshold: 85,
+    mediumThreshold: 70
+  }
+];
+
+// Initial Demo Growth Observations
+const INITIAL_GROWTH = [
+  {
+    id: 'grow-1',
+    landId: 'land-1',
+    date: '2026-02-18',
+    heightCm: 12.5,
+    leafCount: 6,
+    stemCondition: 'Sehat & Hijau Segar',
+    soilMoisture: 'Lembap Optimal (65%)',
+    irrigationNote: 'Penyiraman pagi 5 Liter',
+    fertilizerNote: 'Aplikasi dasar NPK',
+    pestPestNote: 'Tidak ada hama terdeteksi'
+  },
+  {
+    id: 'grow-2',
+    landId: 'land-1',
+    date: '2026-02-25',
+    heightCm: 21.0,
+    leafCount: 11,
+    stemCondition: 'Kokoh Tegak',
+    soilMoisture: 'Cukup',
+    irrigationNote: 'Penyiraman rutin 5L',
+    fertilizerNote: 'Susulan Urea & ZA',
+    pestPestNote: 'Bercak daun ringan di ujung'
+  },
+  {
+    id: 'grow-3',
+    landId: 'land-1',
+    date: '2026-03-04',
+    heightCm: 32.4,
+    leafCount: 18,
+    stemCondition: 'Sangat Subur',
+    soilMoisture: 'Optimal',
+    irrigationNote: 'Penyiraman sore',
+    fertilizerNote: 'Pengocoran pupuk KCL',
+    pestPestNote: 'Nihil'
+  }
+];
+
+// Initial Cultivation Evaluations
+const INITIAL_EVALUATIONS = [
+  {
+    id: 'eval-1',
+    landId: 'land-1',
+    evaluationDate: '2026-03-01',
+    germinationPct: 88,
+    initialPlants: 200,
+    survivingPlants: 188,
+    affectedPlants: 8,
+    observedPlants: 188,
+    targetYieldKg: 25,
+    actualYieldKg: 23.5,
+    harvestDate: '2026-04-10',
+    qualityGrade: 'Kelas A (Super)',
+    notes: 'Kualitas umbi padat dan warna merah cerah.'
+  }
+];
+
+// Initial Calendar Logbook Activities
+const INITIAL_CALENDAR = [
+  {
+    id: 'cal-1',
+    landId: 'land-1',
+    date: '2026-02-10',
+    activityType: 'Penanaman',
+    cost: 150000,
+    materialUsed: 'Bibit Umbi 2kg',
+    notes: 'Jarak tanam 15x15 cm'
+  },
+  {
+    id: 'cal-2',
+    landId: 'land-1',
+    date: '2026-02-20',
+    activityType: 'Pemupukan',
+    cost: 45000,
+    materialUsed: 'Urea + ZA',
+    notes: 'Pemupukan susulan I'
+  },
+  {
+    id: 'cal-3',
+    landId: 'land-1',
+    date: '2026-03-10',
+    activityType: 'Pengendalian Hama',
+    cost: 30000,
+    materialUsed: 'Fungisida Organik',
+    notes: 'Pencegahan jamur moler'
+  }
+];
+
+// Initial Farmers Complaints
+const INITIAL_COMPLAINTS = [
+  {
+    id: 'comp-1',
+    farmerName: 'Pak Budi Hartono',
+    isAnonymous: false,
+    location: 'Sukamaju, Kecamatan Cepu',
+    commodity: 'Bawang Merah',
+    growthStage: 'Vegetatif (20 HST)',
+    category: 'Daun menguning',
+    description: 'Ujung daun bawang pucat menguning bertahap dan mengering saat siang hari terik.',
+    onset: '3 Hari yang lalu',
+    affectedArea: '4 m²',
+    previousAction: 'Disiram air sumur di sore hari',
+    status: 'Sudah ditanggapi',
+    dateSubmitted: '2026-03-02',
+    replies: [
+      {
+        author: 'Penyuluh Pertanian (Ir. Herman)',
+        role: 'Penyuluh Lapangan',
+        date: '2026-03-02 14:30',
+        content: 'Kemungkinan gejala defisiensi Nitrogen atau serangan awal Moler/Utrot. Disarankan cek kelembapan media tanam dan semprot fungisida tembaga bila basah berlebih.'
+      }
+    ]
+  },
+  {
+    id: 'comp-2',
+    farmerName: 'Petani Anonim',
+    isAnonymous: true,
+    location: 'Grobogan',
+    commodity: 'Jagung',
+    growthStage: 'Generatif',
+    category: 'Hama',
+    description: 'Terdapat ulat grayak memakan titik tumbuh daun muda jagung.',
+    onset: '1 Minggu lalu',
+    affectedArea: '0.2 Ha',
+    previousAction: 'Penyemprotan insektisida kontak',
+    status: 'Sedang ditinjau',
+    dateSubmitted: '2026-03-03',
+    replies: []
+  }
+];
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Persistent States
+  const [lands, setLands] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.LANDS);
+    return saved ? JSON.parse(saved) : INITIAL_LANDS;
+  });
+
+  const [germinationLogs, setGerminationLogs] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.GERMINATION_LOGS);
+    return saved ? JSON.parse(saved) : INITIAL_GERMINATION;
+  });
+
+  const [growthLogs, setGrowthLogs] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.GROWTH_LOGS);
+    return saved ? JSON.parse(saved) : INITIAL_GROWTH;
+  });
+
+  const [cultivationLogs, setCultivationLogs] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.CULTIVATION_LOGS);
+    return saved ? JSON.parse(saved) : INITIAL_EVALUATIONS;
+  });
+
+  const [calendarLogs, setCalendarLogs] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.CALENDAR_LOGS);
+    return saved ? JSON.parse(saved) : INITIAL_CALENDAR;
+  });
+
+  const [complaints, setComplaints] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.COMPLAINTS);
+    return saved ? JSON.parse(saved) : INITIAL_COMPLAINTS;
+  });
+
+  // LocalStorage Sync Effects
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.LANDS, JSON.stringify(lands));
+  }, [lands]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.GERMINATION_LOGS, JSON.stringify(germinationLogs));
+  }, [germinationLogs]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.GROWTH_LOGS, JSON.stringify(growthLogs));
+  }, [growthLogs]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.CULTIVATION_LOGS, JSON.stringify(cultivationLogs));
+  }, [cultivationLogs]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.CALENDAR_LOGS, JSON.stringify(calendarLogs));
+  }, [calendarLogs]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.COMPLAINTS, JSON.stringify(complaints));
+  }, [complaints]);
+
+  // Toast Notification state
+  const [toastMessage, setToastMessage] = useState('');
+  const showNotification = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3500);
+  };
+
+  const totalLandAreaM2 = useMemo(() => {
+    return lands.reduce((acc, land) => {
+      const val = parseFloat(land.area) || 0;
+      return acc + (land.unit === 'ha' ? val * 10000 : val);
+    }, 0);
+  }, [lands]);
+
+  const avgGerminationRate = useMemo(() => {
+    if (germinationLogs.length === 0) return 0;
+    const totalPct = germinationLogs.reduce((acc, log) => {
+      const pct = log.totalTested > 0 ? (log.totalSprouted / log.totalTested) * 100 : 0;
+      return acc + pct;
+    }, 0);
+    return (totalPct / germinationLogs.length).toFixed(1);
+  }, [germinationLogs]);
+
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
+    { id: 'kalkulator-pupuk', label: 'Kalkulator Pupuk', icon: Calculator },
+    { id: 'perkecambahan', label: 'Perkecambahan', icon: Sprout },
+    { id: 'pemantauan', label: 'Pemantauan Tanaman', icon: TrendingUp },
+    { id: 'evaluasi', label: 'Evaluasi Budidaya', icon: Award },
+    { id: 'kalender', label: 'Kalender & Diary', icon: Calendar },
+    { id: 'keluhan', label: 'Forum Keluhan', icon: MessageSquare },
+    { id: 'lahan', label: 'Manajemen Lahan', icon: MapPin },
+    { id: 'laporan', label: 'Laporan & Ekspor', icon: FileText }
+  ];
+
+  const renderNavContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <DashboardView 
+                  lands={lands} 
+                  germinationLogs={germinationLogs} 
+                  growthLogs={growthLogs} 
+                  complaints={complaints}
+                  calendarLogs={calendarLogs}
+                  totalAreaM2={totalLandAreaM2}
+                  avgGermination={avgGerminationRate}
+                  setActiveTab={setActiveTab}
+                />;
+      case 'kalkulator-pupuk':
+        return <FertilizerCalculatorView lands={lands} showNotification={showNotification} />;
+      case 'perkecambahan':
+        return <GerminationCalculatorView lands={lands} logs={germinationLogs} setLogs={setGerminationLogs} showNotification={showNotification} />;
+      case 'pemantauan':
+        return <GrowthTrackerView lands={lands} logs={growthLogs} setLogs={setGrowthLogs} showNotification={showNotification} />;
+      case 'evaluasi':
+        return <CultivationEvaluatorView lands={lands} germinationLogs={germinationLogs} logs={cultivationLogs} setLogs={setCultivationLogs} showNotification={showNotification} />;
+      case 'kalender':
+        return <CalendarDiaryView lands={lands} logs={calendarLogs} setLogs={setCalendarLogs} showNotification={showNotification} />;
+      case 'keluhan':
+        return <ComplaintsForumView complaints={complaints} setComplaints={setComplaints} showNotification={showNotification} />;
+      case 'lahan':
+        return <LandManagerView lands={lands} setLands={setLands} showNotification={showNotification} setActiveTab={setActiveTab} />;
+      case 'laporan':
+        return <ReportsExportView lands={lands} germinationLogs={germinationLogs} growthLogs={growthLogs} cultivationLogs={cultivationLogs} complaints={complaints} calendarLogs={calendarLogs} />;
+      default:
+        return <DashboardView lands={lands} totalAreaM2={totalLandAreaM2} avgGermination={avgGerminationRate} setActiveTab={setActiveTab} />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-stone-50 font-sans text-stone-800 flex flex-col md:flex-row">
+      {/* Toast Notification Float */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-50 bg-emerald-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-bounce border border-emerald-700">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+          <span className="text-sm font-medium">{toastMessage}</span>
+        </div>
+      )}
+
+      {}
+      <aside className="hidden md:flex flex-col w-64 bg-emerald-950 text-white border-r border-emerald-900 shadow-xl min-h-screen flex-shrink-0 sticky top-0 h-screen">
+        <div className="p-5 border-b border-emerald-800/60 flex items-center gap-3">
+          <div className="bg-emerald-500 p-2 rounded-xl text-emerald-950 shadow-inner">
+            <Sprout className="w-6 h-6 stroke-[2.5]" />
+          </div>
+          <div>
+            <h1 className="font-bold text-lg leading-tight tracking-wide text-emerald-100">TANI CERDAS</h1>
+            <p className="text-[10px] text-emerald-400 font-medium">Asisten Budidaya Digital</p>
+          </div>
+        </div>
+
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  isActive 
+                    ? 'bg-emerald-700/80 text-white shadow-md border-l-4 border-amber-400 pl-4' 
+                    : 'text-emerald-200/80 hover:bg-emerald-900/60 hover:text-white'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-amber-300' : 'text-emerald-400'}`} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="p-4 border-t border-emerald-800/60 bg-emerald-900/30">
+          <div className="flex items-center gap-2 text-xs text-emerald-300 bg-emerald-900/50 p-2.5 rounded-lg border border-emerald-800">
+            <Info className="w-4 h-4 text-amber-400 flex-shrink-0" />
+            <span>Mode Demo Simulasi Aktif</span>
+          </div>
+        </div>
+      </aside>
+
+      {}
+      <div className="md:hidden bg-emerald-950 text-white px-4 py-3 sticky top-0 z-40 flex items-center justify-between shadow-md border-b border-emerald-800">
+        <div className="flex items-center gap-2">
+          <div className="bg-emerald-500 p-1.5 rounded-lg text-emerald-950">
+            <Sprout className="w-5 h-5 stroke-[2.5]" />
+          </div>
+          <span className="font-bold text-base tracking-wide text-emerald-100">TANI CERDAS</span>
+        </div>
+        <button 
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+          className="p-2 text-emerald-200 hover:text-white rounded-lg focus:outline-none"
+        >
+          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+      </div>
+
+      {/* Mobile Drawer Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-30 bg-emerald-950/95 pt-16 pb-6 px-4 flex flex-col justify-between overflow-y-auto">
+          <nav className="space-y-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    isActive 
+                      ? 'bg-emerald-700 text-white font-semibold' 
+                      : 'text-emerald-200 hover:bg-emerald-900'
+                  }`}
+                >
+                  <Icon className="w-5 h-5 text-amber-400" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+          <div className="pt-4 border-t border-emerald-800">
+            <div className="text-xs text-emerald-300 text-center">
+              Tani Cerdas v2.5 • Pertanian Presisi Indonesia
+            </div>
+          </div>
+        </div>
+      )}
+
+      {}
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
+        {/* Banner Tagline & Notice Header */}
+        <div className="mb-6 bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white p-4 md:p-6 rounded-2xl shadow-lg relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+          <div>
+            <div className="inline-flex items-center gap-2 bg-emerald-950/60 border border-emerald-600/40 text-emerald-300 text-xs px-3 py-1 rounded-full mb-2">
+              <Leaf className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Platform Presisi Budidaya Tanaman</span>
+            </div>
+            <h2 className="text-xl md:text-2xl font-bold tracking-tight">TANI CERDAS</h2>
+            <p className="text-emerald-100/90 text-xs md:text-sm mt-1 italic">
+              "Hitung Tepat, Pantau Tanaman, Tingkatkan Hasil Panen."
+            </p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-md border border-white/15 px-3 py-2 rounded-xl text-xs text-emerald-100 flex items-center gap-2 self-start md:self-auto">
+            <Info className="w-4 h-4 text-amber-300 flex-shrink-0" />
+            <span>Simulasi Data Terlokalisasi • Metrik SNI Standard</span>
+          </div>
+        </div>
+
+        {/* Dynamic Nav Content Render */}
+        {renderNavContent()}
+      </main>
+    </div>
+  );
+}
+
+function DashboardView({ lands, germinationLogs, growthLogs, complaints, calendarLogs, totalAreaM2, avgGermination, setActiveTab }) {
+  const activeCommodities = Array.from(new Set(lands.map(l => l.commodity))).length;
+  const totalActivities = calendarLogs.length;
+
+  return (
+    <div className="space-y-6">
+      {/* Header Greeting */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+        <div>
+          <h2 className="text-xl font-bold text-emerald-950">Selamat Datang, Bapa/Ibu Petani! 👋</h2>
+          <p className="text-stone-500 text-xs md:text-sm">Berikut adalah ringkasan perkembangan budidaya pertanian Anda hari ini.</p>
+        </div>
+        <span className="text-xs bg-stone-100 text-stone-600 px-3 py-1.5 rounded-lg border border-stone-200 font-mono">
+          {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        </span>
+      </div>
+
+      {/* Top Key Metrics Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white p-4 md:p-5 rounded-2xl border border-stone-200 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between text-emerald-700 mb-2">
+            <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Total Lahan</span>
+            <MapPin className="w-5 h-5 bg-emerald-50 p-1 rounded-lg text-emerald-700" />
+          </div>
+          <div className="text-xl md:text-2xl font-bold text-stone-800">
+            {totalAreaM2 >= 10000 ? `${(totalAreaM2 / 10000).toFixed(2)} Ha` : `${totalAreaM2} m²`}
+          </div>
+          <p className="text-[11px] text-stone-400 mt-1">{lands.length} Petak Terdaftar</p>
+        </div>
+
+        <div className="bg-white p-4 md:p-5 rounded-2xl border border-stone-200 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between text-emerald-700 mb-2">
+            <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Komoditas</span>
+            <Sprout className="w-5 h-5 bg-emerald-50 p-1 rounded-lg text-emerald-700" />
+          </div>
+          <div className="text-xl md:text-2xl font-bold text-stone-800">{activeCommodities} Jenis</div>
+          <p className="text-[11px] text-stone-400 mt-1">Bawang, Jagung, dll.</p>
+        </div>
+
+        <div className="bg-white p-4 md:p-5 rounded-2xl border border-stone-200 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between text-emerald-700 mb-2">
+            <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Kegiatan Catat</span>
+            <CalendarIcon className="w-5 h-5 bg-emerald-50 p-1 rounded-lg text-emerald-700" />
+          </div>
+          <div className="text-xl md:text-2xl font-bold text-stone-800">{totalActivities} Catatan</div>
+          <p className="text-[11px] text-stone-400 mt-1">Dalam Buku Harian</p>
+        </div>
+
+        <div className="bg-white p-4 md:p-5 rounded-2xl border border-stone-200 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between text-emerald-700 mb-2">
+            <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Rata Perkecambahan</span>
+            <Award className="w-5 h-5 bg-emerald-50 p-1 rounded-lg text-emerald-700" />
+          </div>
+          <div className="text-xl md:text-2xl font-bold text-stone-800">{avgGermination}%</div>
+          <p className="text-[11px] text-emerald-600 font-medium mt-1">Kategori Bagus</p>
+        </div>
+      </div>
+
+      {/* Quick Action Buttons */}
+      <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+        <h3 className="text-sm font-bold text-stone-700 mb-3 flex items-center gap-2">
+          <ChevronRight className="w-4 h-4 text-emerald-600" />
+          Aksi Cepat Budidaya
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          <button 
+            onClick={() => setActiveTab('kalkulator-pupuk')}
+            className="flex flex-col items-center justify-center p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 transition text-center group"
+          >
+            <Calculator className="w-6 h-6 mb-2 text-emerald-700 group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-semibold">Hitung Pupuk</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('lahan')}
+            className="flex flex-col items-center justify-center p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 transition text-center group"
+          >
+            <Plus className="w-6 h-6 mb-2 text-emerald-700 group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-semibold">Tambah Lahan</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('perkecambahan')}
+            className="flex flex-col items-center justify-center p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 transition text-center group"
+          >
+            <Sprout className="w-6 h-6 mb-2 text-emerald-700 group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-semibold">Tes Benih</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('pemantauan')}
+            className="flex flex-col items-center justify-center p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 transition text-center group"
+          >
+            <TrendingUp className="w-6 h-6 mb-2 text-emerald-700 group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-semibold">Catat Tumbuh</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('keluhan')}
+            className="flex flex-col items-center justify-center p-3 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 transition text-center group col-span-2 sm:col-span-1"
+          >
+            <MessageSquare className="w-6 h-6 mb-2 text-amber-700 group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-semibold">Kirim Keluhan</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Visual Chart Section: Growth Trends */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-stone-800 text-base flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-emerald-600" />
+              Grafik Pertumbuhan Tinggi Tanaman (cm)
+            </h3>
+            <span className="text-xs text-stone-400">Petak Bawang Merah</span>
+          </div>
+          {growthLogs.length > 0 ? (
+            <div className="h-52 flex items-end gap-6 pt-8 pb-2 px-4 border-b border-stone-200 bg-stone-50/50 rounded-xl justify-around">
+              {growthLogs.map((log) => {
+                const maxHeight = 40;
+                const heightPercent = Math.min(100, (log.heightCm / maxHeight) * 100);
+                return (
+                  <div key={log.id} className="flex flex-col items-center flex-1 h-full justify-end group relative">
+                    {/* Tooltip Hover */}
+                    <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-stone-900 text-white text-[10px] py-1 px-2 rounded pointer-events-none whitespace-nowrap z-10 shadow-md">
+                      {log.heightCm} cm ({log.leafCount} daun)
+                    </div>
+                    <div className="text-xs font-bold text-emerald-800 mb-1">{log.heightCm} cm</div>
+                    <div 
+                      style={{ height: `${heightPercent}%` }} 
+                      className="w-full max-w-[48px] bg-gradient-to-t from-emerald-800 to-emerald-500 rounded-t-lg transition-all duration-500 shadow-inner group-hover:brightness-110"
+                    ></div>
+                    <span className="text-[10px] text-stone-500 mt-2 font-medium">{log.date.substring(5)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="h-48 flex items-center justify-center text-stone-400 text-xs">Belum ada pengamatan pertumbuhan</div>
+          )}
+        </div>
+
+        {/* Upcoming Schedules */}
+        <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 className="font-bold text-stone-800 text-base mb-3 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-amber-600" />
+              Jadwal Budidaya Mendatang
+            </h3>
+            <div className="space-y-3">
+              <div className="p-3 bg-stone-50 border border-stone-200 rounded-xl flex items-start gap-3">
+                <div className="bg-emerald-100 text-emerald-800 p-2 rounded-lg text-xs font-bold flex-shrink-0 text-center leading-tight">
+                  12<br/><span className="text-[9px] font-normal">MAR</span>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-stone-800">Pemupukan Susulan II (KCL & ZA)</h4>
+                  <p className="text-[11px] text-stone-500">Lahan Bawang Merah Utama</p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-stone-50 border border-stone-200 rounded-xl flex items-start gap-3">
+                <div className="bg-amber-100 text-amber-800 p-2 rounded-lg text-xs font-bold flex-shrink-0 text-center leading-tight">
+                  18<br/><span className="text-[9px] font-normal">MAR</span>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-stone-800">Inspeksi Pengendalian Hama Ulat</h4>
+                  <p className="text-[11px] text-stone-500">Lahan Jagung Hibrida</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button 
+            onClick={() => setActiveTab('kalender')}
+            className="w-full mt-4 text-center text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 py-2 rounded-xl transition"
+          >
+            Buka Kalender Lengkap →
+          </button>
+        </div>
+      </div>
+
+      {/* Latest Complaints List Widget */}
+      <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-stone-800 text-base flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-emerald-600" />
+            Keluhan & Konsultasi Terbaru
+          </h3>
+          <button onClick={() => setActiveTab('keluhan')} className="text-xs font-medium text-emerald-700 hover:underline">Lihat Semua</button>
+        </div>
+
+        <div className="space-y-3">
+          {complaints.slice(0, 2).map((c) => (
+            <div key={c.id} className="p-3 border border-stone-200 rounded-xl flex flex-col sm:flex-row justify-between sm:items-center gap-2 bg-stone-50/60">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-bold text-stone-800">{c.isAnonymous ? 'Petani Anonim' : c.farmerName}</span>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">{c.commodity}</span>
+                </div>
+                <p className="text-xs text-stone-600 line-clamp-1">{c.description}</p>
+              </div>
+              <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full self-start sm:self-auto ${
+                c.status === 'Sudah ditanggapi' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+              }`}>
+                {c.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FertilizerCalculatorView({ lands, showNotification }) {
+  // Input Form States
+  const [selectedLandId, setSelectedLandId] = useState(lands[0]?.id || '');
+  const [farmerName, setFarmerName] = useState('Kelompok Tani Tani Makmur');
+  const [plotName, setPlotName] = useState('Petak 1');
+  const [commodity, setCommodity] = useState('Bawang Merah');
+  const [area, setArea] = useState(16);
+  const [unit, setUnit] = useState('m2'); // 'm2' or 'ha'
+
+  // Nutrients Recommendations (kg/ha)
+  const [dosages, setDosages] = useState(DEFAULT_RECOMMENDATION);
+
+  // Editable Fertilizer Spec Percentages (%)
+  const [fertSpecs, setFertSpecs] = useState(DEFAULT_FERTILIZER_SPECS);
+
+  // Combination Settings
+  const [enableCombination, setEnableCombination] = useState(true);
+  const [zaDoseForN, setZaDoseForN] = useState(200); // kg/ha ZA for combination
+
+  // Sync land details if land selection changes
+  useEffect(() => {
+    const l = lands.find(item => item.id === selectedLandId);
+    if (l) {
+      setPlotName(l.name);
+      setCommodity(l.commodity);
+      setArea(l.area);
+      setUnit(l.unit);
+    }
+  }, [selectedLandId, lands]);
+
+  const calculations = useMemo(() => {
+    const areaM2 = unit === 'ha' ? parseFloat(area) * 10000 : parseFloat(area) || 0;
+    const factor = areaM2 / 10000;
+
+    // 1. Requirements in Nutrient Elements/Oxides (kg)
+    const reqN = (parseFloat(dosages.n) || 0) * factor;
+    const reqP2O5 = (parseFloat(dosages.p2o5) || 0) * factor;
+    const reqK2O = (parseFloat(dosages.k2o) || 0) * factor;
+    const reqCa = (parseFloat(dosages.ca) || 0) * factor;
+    const reqMg = (parseFloat(dosages.mg) || 0) * factor;
+    const reqS = (parseFloat(dosages.s) || 0) * factor;
+
+    // 2. Single Fertilizer Products Calculations
+    // Urea
+    const ureaKg = reqN / ((parseFloat(fertSpecs.ureaN) || 46) / 100);
+    const ureaGram = ureaKg * 1000;
+
+    // SP-36
+    const sp36Kg = reqP2O5 / ((parseFloat(fertSpecs.sp36P) || 36) / 100);
+    const sp36Gram = sp36Kg * 1000;
+
+    // KCl
+    const kclKg = reqK2O / ((parseFloat(fertSpecs.kclK) || 60) / 100);
+    const kclGram = kclKg * 1000;
+
+    // CaCO3
+    const caco3Kg = reqCa / ((parseFloat(fertSpecs.caco3Ca) || 40) / 100);
+    const caco3Gram = caco3Kg * 1000;
+
+    // Kieserite
+    const kieseriteKg = reqMg / ((parseFloat(fertSpecs.kieseriteMg) || 24) / 100);
+    const kieseriteGram = kieseriteKg * 1000;
+
+    // ZA Solo
+    const zaSoloKg = reqN / ((parseFloat(fertSpecs.zaN) || 21) / 100);
+    const zaSoloGram = zaSoloKg * 1000;
+
+    // 3. Combination Calculations (ZA + Urea)
+    let comboZaKg = 0;
+    let comboZaGram = 0;
+    let zaSuppliedN = 0;
+    let zaSuppliedS = 0;
+    let remN = reqN;
+    let comboUreaKg = 0;
+    let comboUreaGram = 0;
+    let comboWarning = null;
+
+    if (enableCombination) {
+      comboZaKg = ((parseFloat(zaDoseForN) || 0) * factor);
+      comboZaGram = comboZaKg * 1000;
+      zaSuppliedN = comboZaKg * ((parseFloat(fertSpecs.zaN) || 21) / 100);
+      zaSuppliedS = comboZaKg * ((parseFloat(fertSpecs.zaS) || 24) / 100);
+
+      remN = Math.max(0, reqN - zaSuppliedN);
+      comboUreaKg = remN / ((parseFloat(fertSpecs.ureaN) || 46) / 100);
+      comboUreaGram = comboUreaKg * 1000;
+
+      if (zaSuppliedN > reqN) {
+        comboWarning = `Peringatan: Dosis ZA yang digunakan telah memasok ${zaSuppliedN.toFixed(3)} kg N, melebihi total kebutuhan (${reqN.toFixed(3)} kg N). Kebutuhan Urea menjadi 0.`;
+      }
+    }
+
+    return {
+      areaM2,
+      reqN, reqP2O5, reqK2O, reqCa, reqMg, reqS,
+      ureaGram, ureaKg,
+      sp36Gram, sp36Kg,
+      kclGram, kclKg,
+      caco3Gram, caco3Kg,
+      kieseriteGram, kieseriteKg,
+      zaSoloGram, zaSoloKg,
+      comboZaGram, comboZaKg,
+      zaSuppliedN, zaSuppliedS,
+      remN, comboUreaGram, comboUreaKg,
+      comboWarning
+    };
+  }, [area, unit, dosages, fertSpecs, enableCombination, zaDoseForN]);
+
+  const handleCopy = () => {
+    const text = `HASIL PERHITUNGAN PUPUK - TANI CERDAS
+Lahan: ${plotName} (${area} ${unit})
+Komoditas: ${commodity}
+---
+- Urea: ${calculations.ureaGram.toFixed(2)} g (${calculations.ureaKg.toFixed(3)} kg)
+- SP-36: ${calculations.sp36Gram.toFixed(2)} g (${calculations.sp36Kg.toFixed(3)} kg)
+- KCl: ${calculations.kclGram.toFixed(2)} g (${calculations.kclKg.toFixed(3)} kg)
+- CaCO3: ${calculations.caco3Gram.toFixed(2)} g (${calculations.caco3Kg.toFixed(3)} kg)
+- Kieserit: ${calculations.kieseriteGram.toFixed(2)} g (${calculations.kieseriteKg.toFixed(3)} kg)`;
+    navigator.clipboard.writeText(text);
+    showNotification('Hasil perhitungan berhasil disalin ke clipboard!');
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-emerald-950 flex items-center gap-2">
+            <Calculator className="w-6 h-6 text-emerald-700" />
+            Kalkulator Kebutuhan Pupuk Presisi
+          </h2>
+          <p className="text-xs text-stone-500">
+            Perhitungan presisi dosis pupuk berdasarkan unsur tunggal ($N, P_2O_5, K_2O, Ca, Mg, S$).
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={handleCopy}
+            className="flex items-center gap-1.5 px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-semibold transition border border-stone-300"
+          >
+            <Copy className="w-4 h-4 text-stone-600" />
+            Salin Teks
+          </button>
+          <button 
+            onClick={() => window.print()}
+            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-semibold transition shadow-sm"
+          >
+            <Printer className="w-4 h-4" />
+            Cetak Laporan
+          </button>
+        </div>
+      </div>
+
+      {/* Main Form & Parameter Inputs */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1 space-y-4">
+          <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-4">
+            <h3 className="font-bold text-stone-800 text-sm border-b pb-2 flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-emerald-600" />
+              1. Identitas Lahan & Komoditas
+            </h3>
+
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Pilih Dari Lahan Saya</label>
+              <select 
+                value={selectedLandId}
+                onChange={(e) => setSelectedLandId(e.target.value)}
+                className="w-full p-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
+              >
+                {lands.map(l => (
+                  <option key={l.id} value={l.id}>{l.name} ({l.commodity})</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-stone-600 block mb-1">Luas Lahan</label>
+                <input 
+                  type="number"
+                  min="0.1"
+                  step="any"
+                  value={area}
+                  onChange={(e) => setArea(e.target.value)}
+                  className="w-full p-2 text-xs border border-stone-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-stone-600 block mb-1">Satuan</label>
+                <select 
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  className="w-full p-2 text-xs border border-stone-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
+                >
+                  <option value="m2">m²</option>
+                  <option value="ha">Hektare (ha)</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Komoditas Tanam</label>
+              <input 
+                type="text"
+                value={commodity}
+                onChange={(e) => setCommodity(e.target.value)}
+                className="w-full p-2 text-xs border border-stone-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Editable Nutrient Percentages */}
+          <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-3">
+            <h3 className="font-bold text-stone-800 text-sm border-b pb-2 flex items-center justify-between">
+              <span>2. Pengaturan Kadar Pupuk (%)</span>
+              <button 
+                onClick={() => setFertSpecs(DEFAULT_FERTILIZER_SPECS)} 
+                className="text-[10px] text-emerald-700 hover:underline flex items-center gap-1 font-normal"
+              >
+                <RefreshCw className="w-3 h-3" /> Reset Default
+              </button>
+            </h3>
+
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="text-stone-500 text-[11px]">Urea (% N)</span>
+                <input 
+                  type="number" 
+                  value={fertSpecs.ureaN} 
+                  onChange={(e) => setFertSpecs({...fertSpecs, ureaN: e.target.value})}
+                  className="w-full p-1.5 border rounded-lg text-xs" 
+                />
+              </div>
+              <div>
+                <span className="text-stone-500 text-[11px]">SP-36 (% P₂O₅)</span>
+                <input 
+                  type="number" 
+                  value={fertSpecs.sp36P} 
+                  onChange={(e) => setFertSpecs({...fertSpecs, sp36P: e.target.value})}
+                  className="w-full p-1.5 border rounded-lg text-xs" 
+                />
+              </div>
+              <div>
+                <span className="text-stone-500 text-[11px]">KCl (% K₂O)</span>
+                <input 
+                  type="number" 
+                  value={fertSpecs.kclK} 
+                  onChange={(e) => setFertSpecs({...fertSpecs, kclK: e.target.value})}
+                  className="w-full p-1.5 border rounded-lg text-xs" 
+                />
+              </div>
+              <div>
+                <span className="text-stone-500 text-[11px]">CaCO₃ (% Ca)</span>
+                <input 
+                  type="number" 
+                  value={fertSpecs.caco3Ca} 
+                  onChange={(e) => setFertSpecs({...fertSpecs, caco3Ca: e.target.value})}
+                  className="w-full p-1.5 border rounded-lg text-xs" 
+                />
+              </div>
+              <div>
+                <span className="text-stone-500 text-[11px]">Kieserit (% MgO)</span>
+                <input 
+                  type="number" 
+                  value={fertSpecs.kieseriteMg} 
+                  onChange={(e) => setFertSpecs({...fertSpecs, kieseriteMg: e.target.value})}
+                  className="w-full p-1.5 border rounded-lg text-xs" 
+                />
+              </div>
+              <div>
+                <span className="text-stone-500 text-[11px]">ZA (% N / % S)</span>
+                <div className="flex gap-1">
+                  <input 
+                    type="number" 
+                    value={fertSpecs.zaN} 
+                    onChange={(e) => setFertSpecs({...fertSpecs, zaN: e.target.value})}
+                    className="w-1/2 p-1.5 border rounded-lg text-xs" 
+                    title="Kadar N"
+                  />
+                  <input 
+                    type="number" 
+                    value={fertSpecs.zaS} 
+                    onChange={(e) => setFertSpecs({...fertSpecs, zaS: e.target.value})}
+                    className="w-1/2 p-1.5 border rounded-lg text-xs" 
+                    title="Kadar S"
+                  />
+                </div>
+              </div>
+            </div>
+            <p className="text-[10px] text-stone-400 italic">
+              *Aplikasi memisahkan basis hara elemental dengan oksida label pupuk.
+            </p>
+          </div>
+        </div>
+
+        {/* Dosages Inputs & Main Results */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-4">
+            <h3 className="font-bold text-stone-800 text-sm border-b pb-2">
+              3. Dosis Rekomendasi Unsur Hara Target (kg/ha)
+            </h3>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-medium text-stone-600 block mb-1">N (Nitrogen)</label>
+                <input 
+                  type="number" 
+                  value={dosages.n} 
+                  onChange={(e) => setDosages({...dosages, n: e.target.value})}
+                  className="w-full p-2 text-xs border rounded-xl font-semibold text-emerald-900" 
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-stone-600 block mb-1">P₂O₅ (Fosfat)</label>
+                <input 
+                  type="number" 
+                  value={dosages.p2o5} 
+                  onChange={(e) => setDosages({...dosages, p2o5: e.target.value})}
+                  className="w-full p-2 text-xs border rounded-xl font-semibold text-emerald-900" 
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-stone-600 block mb-1">K₂O (Kalium Oksida)</label>
+                <input 
+                  type="number" 
+                  value={dosages.k2o} 
+                  onChange={(e) => setDosages({...dosages, k2o: e.target.value})}
+                  className="w-full p-2 text-xs border rounded-xl font-semibold text-emerald-900" 
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-stone-600 block mb-1">Ca (Kalsium)</label>
+                <input 
+                  type="number" 
+                  value={dosages.ca} 
+                  onChange={(e) => setDosages({...dosages, ca: e.target.value})}
+                  className="w-full p-2 text-xs border rounded-xl font-semibold text-emerald-900" 
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-stone-600 block mb-1">Mg (Magnesium)</label>
+                <input 
+                  type="number" 
+                  value={dosages.mg} 
+                  onChange={(e) => setDosages({...dosages, mg: e.target.value})}
+                  className="w-full p-2 text-xs border rounded-xl font-semibold text-emerald-900" 
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-stone-600 block mb-1">S (Sulfur)</label>
+                <input 
+                  type="number" 
+                  value={dosages.s} 
+                  onChange={(e) => setDosages({...dosages, s: e.target.value})}
+                  className="w-full p-2 text-xs border rounded-xl font-semibold text-emerald-900" 
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Results Table - Single Fertilizer Calculation */}
+          <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+            <h3 className="font-bold text-emerald-950 text-sm mb-3 flex items-center justify-between">
+              <span>4. Hasil Kebutuhan Produk Pupuk Tunggal</span>
+              <span className="text-xs font-normal text-stone-500">Luas: {calculations.areaM2} m²</span>
+            </h3>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-emerald-900 text-white font-semibold">
+                    <th className="p-2.5 rounded-tl-lg">Unsur Target</th>
+                    <th className="p-2.5">Dosis (kg/ha)</th>
+                    <th className="p-2.5">Kebutuhan Hara</th>
+                    <th className="p-2.5">Jenis Pupuk</th>
+                    <th className="p-2.5 text-right">Kebutuhan (Gram)</th>
+                    <th className="p-2.5 text-right rounded-tr-lg">Kebutuhan (Kg)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-200 text-stone-700">
+                  <tr className="hover:bg-emerald-50/50">
+                    <td className="p-2.5 font-bold">N</td>
+                    <td className="p-2.5">{dosages.n}</td>
+                    <td className="p-2.5">{calculations.reqN.toFixed(3)} kg N</td>
+                    <td className="p-2.5 font-semibold text-emerald-800">Urea ({fertSpecs.ureaN}%)</td>
+                    <td className="p-2.5 text-right font-bold text-emerald-900">{calculations.ureaGram.toFixed(2)} g</td>
+                    <td className="p-2.5 text-right font-semibold">{calculations.ureaKg.toFixed(3)} kg</td>
+                  </tr>
+
+                  <tr className="hover:bg-emerald-50/50">
+                    <td className="p-2.5 font-bold">P₂O₅</td>
+                    <td className="p-2.5">{dosages.p2o5}</td>
+                    <td className="p-2.5">{calculations.reqP2O5.toFixed(3)} kg P₂O₅</td>
+                    <td className="p-2.5 font-semibold text-emerald-800">SP-36 ({fertSpecs.sp36P}%)</td>
+                    <td className="p-2.5 text-right font-bold text-emerald-900">{calculations.sp36Gram.toFixed(2)} g</td>
+                    <td className="p-2.5 text-right font-semibold">{calculations.sp36Kg.toFixed(3)} kg</td>
+                  </tr>
+
+                  <tr className="hover:bg-emerald-50/50">
+                    <td className="p-2.5 font-bold">K₂O</td>
+                    <td className="p-2.5">{dosages.k2o}</td>
+                    <td className="p-2.5">{calculations.reqK2O.toFixed(3)} kg K₂O</td>
+                    <td className="p-2.5 font-semibold text-emerald-800">KCl ({fertSpecs.kclK}%)</td>
+                    <td className="p-2.5 text-right font-bold text-emerald-900">{calculations.kclGram.toFixed(2)} g</td>
+                    <td className="p-2.5 text-right font-semibold">{calculations.kclKg.toFixed(3)} kg</td>
+                  </tr>
+
+                  <tr className="hover:bg-emerald-50/50">
+                    <td className="p-2.5 font-bold">Ca</td>
+                    <td className="p-2.5">{dosages.ca}</td>
+                    <td className="p-2.5">{calculations.reqCa.toFixed(3)} kg Ca</td>
+                    <td className="p-2.5 font-semibold text-emerald-800">CaCO₃ ({fertSpecs.caco3Ca}%)</td>
+                    <td className="p-2.5 text-right font-bold text-emerald-900">{calculations.caco3Gram.toFixed(2)} g</td>
+                    <td className="p-2.5 text-right font-semibold">{calculations.caco3Kg.toFixed(3)} kg</td>
+                  </tr>
+
+                  <tr className="hover:bg-emerald-50/50">
+                    <td className="p-2.5 font-bold">Mg</td>
+                    <td className="p-2.5">{dosages.mg}</td>
+                    <td className="p-2.5">{calculations.reqMg.toFixed(3)} kg Mg</td>
+                    <td className="p-2.5 font-semibold text-emerald-800">Kieserit ({fertSpecs.kieseriteMg}%)</td>
+                    <td className="p-2.5 text-right font-bold text-emerald-900">{calculations.kieseriteGram.toFixed(2)} g</td>
+                    <td className="p-2.5 text-right font-semibold">{calculations.kieseriteKg.toFixed(3)} kg</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Combination Fertilizer Feature (ZA + Urea) */}
+          <div className="bg-amber-50/60 p-5 rounded-2xl border border-amber-200 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-amber-900 text-sm flex items-center gap-2">
+                <Info className="w-4 h-4 text-amber-700" />
+                5. Fitur Kombinasi Pupuk (Penyusuaian Nitrogen ZA + Urea)
+              </h3>
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-amber-900">
+                <input 
+                  type="checkbox" 
+                  checked={enableCombination} 
+                  onChange={(e) => setEnableCombination(e.target.checked)} 
+                  className="rounded text-amber-600"
+                />
+                Aktifkan Kombinasi
+              </label>
+            </div>
+
+            {enableCombination && (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-stone-700 font-medium">Target Dosis ZA Aplikasi:</span>
+                  <input 
+                    type="number" 
+                    value={zaDoseForN} 
+                    onChange={(e) => setZaDoseForN(e.target.value)}
+                    className="w-28 p-1.5 text-xs border rounded-lg font-bold bg-white"
+                  />
+                  <span className="text-xs text-stone-500">kg/ha ZA</span>
+                </div>
+
+                {calculations.comboWarning && (
+                  <div className="p-2.5 bg-red-100 text-red-800 rounded-xl text-xs flex items-center gap-2 border border-red-200">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                    <span>{calculations.comboWarning}</span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-white p-3 rounded-xl border border-amber-200">
+                  <div>
+                    <span className="text-stone-500 block">Kebutuhan Produk ZA:</span>
+                    <span className="font-bold text-amber-950 text-sm">{calculations.comboZaGram.toFixed(2)} gram</span>
+                    <span className="text-[11px] text-stone-500 block">Memasok N: {calculations.zaSuppliedN.toFixed(3)} kg & S: {calculations.zaSuppliedS.toFixed(3)} kg</span>
+                  </div>
+
+                  <div>
+                    <span className="text-stone-500 block">Sisa Kebutuhan N Disuplai Urea:</span>
+                    <span className="font-bold text-emerald-800 text-sm">{calculations.comboUreaGram.toFixed(2)} gram</span>
+                    <span className="text-[11px] text-stone-500 block">({calculations.comboUreaKg.toFixed(3)} kg Urea)</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GerminationCalculatorView({ lands, logs, setLogs, showNotification }) {
+  const [selectedLandId, setSelectedLandId] = useState(lands[0]?.id || '');
+  const [commodity, setCommodity] = useState('Bawang Merah');
+  const [variety, setVariety] = useState('Batu Ijo');
+  const [testDate, setTestDate] = useState(new Date().toISOString().substring(0, 10));
+  const [totalTested, setTotalTested] = useState(100);
+  const [totalSprouted, setTotalSprouted] = useState(85);
+  const [notes, setNotes] = useState('');
+  const [goodThreshold, setGoodThreshold] = useState(85);
+  const [mediumThreshold, setMediumThreshold] = useState(70);
+
+  const totalNotSprouted = Math.max(0, parseInt(totalTested || 0) - parseInt(totalSprouted || 0));
+  const germinationRate = totalTested > 0 ? ((parseInt(totalSprouted || 0) / parseInt(totalTested)) * 100).toFixed(1) : 0;
+
+  const getCategory = (rate) => {
+    if (rate >= goodThreshold) return { label: 'Bagus / Sangat Baik', color: 'bg-emerald-100 text-emerald-800' };
+    if (rate >= mediumThreshold) return { label: 'Sedang / Cukup', color: 'bg-amber-100 text-amber-800' };
+    return { label: 'Rendah / Kurang Baik', color: 'bg-red-100 text-red-800' };
+  };
+
+  const handleSave = (e) => {
+    e.preventDefault();
+    if (parseInt(totalSprouted) > parseInt(totalTested)) {
+      alert('Jumlah benih berkecambah tidak boleh lebih besar dari total benih yang diuji!');
+      return;
+    }
+
+    const newLog = {
+      id: `germ-${Date.now()}`,
+      landId: selectedLandId,
+      commodity,
+      variety,
+      testDate,
+      totalTested: parseInt(totalTested),
+      totalSprouted: parseInt(totalSprouted),
+      notes,
+      goodThreshold,
+      mediumThreshold
+    };
+
+    setLogs([newLog, ...logs]);
+    showNotification('Data pengujian perkecambahan berhasil disimpan!');
+    setNotes('');
+  };
+
+  const handleDelete = (id) => {
+    setLogs(logs.filter(l => l.id !== id));
+    showNotification('Data pengujian dihapus.');
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-emerald-950 flex items-center gap-2">
+          <Sprout className="w-6 h-6 text-emerald-700" />
+          Kalkulator & Pengujian Perkecambahan Benih
+        </h2>
+        <p className="text-xs text-stone-500">
+          Uji kualitas dan daya kecambah benih sebelum tanam serentak di lahan.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Form Inputs */}
+        <form onSubmit={handleSave} className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-4">
+          <h3 className="font-bold text-stone-800 text-sm border-b pb-2">Form Pengujian Perkecambahan</h3>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Lahan Terkait</label>
+            <select 
+              value={selectedLandId} 
+              onChange={(e) => setSelectedLandId(e.target.value)}
+              className="w-full p-2 text-xs border rounded-xl"
+            >
+              {lands.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Komoditas</label>
+              <input 
+                type="text" 
+                value={commodity} 
+                onChange={(e) => setCommodity(e.target.value)} 
+                className="w-full p-2 text-xs border rounded-xl"
+                required 
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Varietas</label>
+              <input 
+                type="text" 
+                value={variety} 
+                onChange={(e) => setVariety(e.target.value)} 
+                className="w-full p-2 text-xs border rounded-xl"
+                required 
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Tanggal Uji</label>
+            <input 
+              type="date" 
+              value={testDate} 
+              onChange={(e) => setTestDate(e.target.value)} 
+              className="w-full p-2 text-xs border rounded-xl"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Benih Diuji</label>
+              <input 
+                type="number" 
+                min="1" 
+                value={totalTested} 
+                onChange={(e) => setTotalTested(e.target.value)} 
+                className="w-full p-2 text-xs border rounded-xl font-bold"
+                required 
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Berkecambah</label>
+              <input 
+                type="number" 
+                min="0" 
+                max={totalTested}
+                value={totalSprouted} 
+                onChange={(e) => setTotalSprouted(e.target.value)} 
+                className="w-full p-2 text-xs border rounded-xl font-bold text-emerald-800"
+                required 
+              />
+            </div>
+          </div>
+
+          <div className="p-3 bg-stone-50 rounded-xl border border-stone-200">
+            <span className="text-xs font-bold text-stone-700 block mb-2">Batas Ambang Kategori (%)</span>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="text-[10px] text-stone-500">Min. Bagus (%)</span>
+                <input 
+                  type="number" 
+                  value={goodThreshold} 
+                  onChange={(e) => setGoodThreshold(e.target.value)} 
+                  className="w-full p-1 border rounded text-xs" 
+                />
+              </div>
+              <div>
+                <span className="text-[10px] text-stone-500">Min. Sedang (%)</span>
+                <input 
+                  type="number" 
+                  value={mediumThreshold} 
+                  onChange={(e) => setMediumThreshold(e.target.value)} 
+                  className="w-full p-1 border rounded text-xs" 
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Catatan Pengamatan</label>
+            <textarea 
+              value={notes} 
+              onChange={(e) => setNotes(e.target.value)} 
+              placeholder="Contoh: Perkecambahan seragam..."
+              className="w-full p-2 text-xs border rounded-xl" 
+              rows="2"
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            className="w-full py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition shadow-sm"
+          >
+            Simpan hasil Pengujian
+          </button>
+        </form>
+
+        {/* Live Indicator & Log History */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Live Meter Card */}
+          <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="text-center md:text-left">
+              <span className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Hasil Kalkulasi Langsung</span>
+              <div className="text-4xl font-extrabold text-emerald-900 mt-1">{germinationRate}%</div>
+              <p className="text-xs text-stone-500 mt-1">
+                {totalSprouted} dari {totalTested} benih berkecambah ({totalNotSprouted} gagal).
+              </p>
+              <div className="mt-2">
+                <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${getCategory(germinationRate).color}`}>
+                  {getCategory(germinationRate).label}
+                </span>
+              </div>
+            </div>
+
+            {/* Visual Progress Dial bar */}
+            <div className="w-full max-w-xs space-y-2">
+              <div className="flex justify-between text-xs text-stone-600 font-semibold">
+                <span>Daya Kecambah</span>
+                <span>{germinationRate}%</span>
+              </div>
+              <div className="w-full bg-stone-200 h-4 rounded-full overflow-hidden p-0.5 border">
+                <div 
+                  style={{ width: `${Math.min(100, germinationRate)}%` }} 
+                  className="bg-emerald-600 h-full rounded-full transition-all duration-500"
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Logs History Table */}
+          <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+            <h3 className="font-bold text-stone-800 text-sm mb-3">Riwayat Pengujian Perkecambahan</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b bg-stone-50 text-stone-600 font-semibold">
+                    <th className="p-2">Tanggal</th>
+                    <th className="p-2">Komoditas</th>
+                    <th className="p-2">Uji / Tumbuh</th>
+                    <th className="p-2">Persentase</th>
+                    <th className="p-2">Status</th>
+                    <th className="p-2 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y text-stone-700">
+                  {logs.map((log) => {
+                    const rate = ((log.totalSprouted / log.totalTested) * 100).toFixed(1);
+                    const cat = getCategory(rate);
+                    return (
+                      <tr key={log.id} className="hover:bg-stone-50">
+                        <td className="p-2">{log.testDate}</td>
+                        <td className="p-2 font-semibold">{log.commodity} ({log.variety})</td>
+                        <td className="p-2">{log.totalTested} / {log.totalSprouted}</td>
+                        <td className="p-2 font-bold text-emerald-800">{rate}%</td>
+                        <td className="p-2">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${cat.color}`}>
+                            {cat.label}
+                          </span>
+                        </td>
+                        <td className="p-2 text-right">
+                          <button 
+                            onClick={() => handleDelete(log.id)}
+                            className="text-red-500 hover:text-red-700 p-1"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GrowthTrackerView({ lands, logs, setLogs, showNotification }) {
+  const [selectedLandId, setSelectedLandId] = useState(lands[0]?.id || '');
+  const [date, setDate] = useState(new Date().toISOString().substring(0, 10));
+  const [heightCm, setHeightCm] = useState(15.0);
+  const [leafCount, setLeafCount] = useState(6);
+  const [stemCondition, setStemCondition] = useState('Sehat & Hijau');
+  const [soilMoisture, setSoilMoisture] = useState('Lembap (60%)');
+  const [irrigationNote, setIrrigationNote] = useState('Penyiraman rutin');
+  const [fertilizerNote, setFertilizerNote] = useState('Nihil');
+  const [pestPestNote, setPestPestNote] = useState('Nihil');
+
+  const handleSave = (e) => {
+    e.preventDefault();
+    const newEntry = {
+      id: `grow-${Date.now()}`,
+      landId: selectedLandId,
+      date,
+      heightCm: parseFloat(heightCm),
+      leafCount: parseInt(leafCount),
+      stemCondition,
+      soilMoisture,
+      irrigationNote,
+      fertilizerNote,
+      pestPestNote
+    };
+
+    setLogs([newEntry, ...logs]);
+    showNotification('Catatan pertumbuhan berhasil disimpan!');
+  };
+
+  const filteredLogs = logs.filter(l => l.landId === selectedLandId);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-emerald-950 flex items-center gap-2">
+          <TrendingUp className="w-6 h-6 text-emerald-700" />
+          Pemantauan Pertumbuhan Tanaman
+        </h2>
+        <p className="text-xs text-stone-500">
+          Catat perkembangan tinggi, daun, kelembapan, dan kesehatan vegetatif secara periodik.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Input Form */}
+        <form onSubmit={handleSave} className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-3">
+          <h3 className="font-bold text-stone-800 text-sm border-b pb-2">Pengamatan Berkala Baru</h3>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Pilih Lahan</label>
+            <select 
+              value={selectedLandId} 
+              onChange={(e) => setSelectedLandId(e.target.value)}
+              className="w-full p-2 text-xs border rounded-xl"
+            >
+              {lands.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Tanggal Pengamatan</label>
+            <input 
+              type="date" 
+              value={date} 
+              onChange={(e) => setDate(e.target.value)} 
+              className="w-full p-2 text-xs border rounded-xl"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Tinggi Tanaman (cm)</label>
+              <input 
+                type="number" 
+                step="0.1"
+                value={heightCm} 
+                onChange={(e) => setHeightCm(e.target.value)} 
+                className="w-full p-2 text-xs border rounded-xl font-bold text-emerald-900"
+                required 
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Jumlah Daun</label>
+              <input 
+                type="number" 
+                value={leafCount} 
+                onChange={(e) => setLeafCount(e.target.value)} 
+                className="w-full p-2 text-xs border rounded-xl font-bold"
+                required 
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Kondisi Batang & Daun</label>
+            <input 
+              type="text" 
+              value={stemCondition} 
+              onChange={(e) => setStemCondition(e.target.value)} 
+              className="w-full p-2 text-xs border rounded-xl"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Kelembapan Tanah</label>
+            <input 
+              type="text" 
+              value={soilMoisture} 
+              onChange={(e) => setSoilMoisture(e.target.value)} 
+              className="w-full p-2 text-xs border rounded-xl"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Catatan Hama / Pemupukan</label>
+            <input 
+              type="text" 
+              value={pestPestNote} 
+              onChange={(e) => setPestPestNote(e.target.value)} 
+              placeholder="Gejala hama atau jenis pupuk..."
+              className="w-full p-2 text-xs border rounded-xl"
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            className="w-full py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition"
+          >
+            Simpan Pengamatan
+          </button>
+        </form>
+
+        {/* Observations Table */}
+        <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+          <h3 className="font-bold text-stone-800 text-sm mb-3">Tabel Pengamatan Pertumbuhan</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b bg-stone-50 text-stone-600 font-semibold">
+                  <th className="p-2.5">Tanggal</th>
+                  <th className="p-2.5">Tinggi</th>
+                  <th className="p-2.5">Jumlah Daun</th>
+                  <th className="p-2.5">Kondisi Batang</th>
+                  <th className="p-2.5">Hama/Catatan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y text-stone-700">
+                {filteredLogs.map((log) => (
+                  <tr key={log.id} className="hover:bg-stone-50">
+                    <td className="p-2.5 font-medium">{log.date}</td>
+                    <td className="p-2.5 font-bold text-emerald-800">{log.heightCm} cm</td>
+                    <td className="p-2.5">{log.leafCount} helai</td>
+                    <td className="p-2.5">{log.stemCondition}</td>
+                    <td className="p-2.5 text-stone-500">{log.pestPestNote}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CultivationEvaluatorView({ lands, germinationLogs, logs, setLogs, showNotification }) {
+  const [selectedLandId, setSelectedLandId] = useState(lands[0]?.id || '');
+  const [initialPlants, setInitialPlants] = useState(200);
+  const [survivingPlants, setSurvivingPlants] = useState(188);
+  const [observedPlants, setObservedPlants] = useState(188);
+  const [affectedPlants, setAffectedPlants] = useState(8);
+  const [targetYieldKg, setTargetYieldKg] = useState(25);
+  const [actualYieldKg, setActualYieldKg] = useState(23.5);
+  const [qualityGrade, setQualityGrade] = useState('Kelas A');
+
+  // Multi-indicator formulas
+  const land = lands.find(l => l.id === selectedLandId);
+  const germLog = germinationLogs.find(g => g.landId === selectedLandId);
+
+  const germinationRate = germLog ? ((germLog.totalSprouted / germLog.totalTested) * 100).toFixed(1) : '85.0';
+  const survivalRate = initialPlants > 0 ? ((survivingPlants / initialPlants) * 100).toFixed(1) : 0;
+  const pestRate = observedPlants > 0 ? ((affectedPlants / observedPlants) * 100).toFixed(1) : 0;
+  const targetAttainment = targetYieldKg > 0 ? ((actualYieldKg / targetYieldKg) * 100).toFixed(1) : 0;
+
+  // Productivity calculation per Ha
+  const areaM2 = land ? (land.unit === 'ha' ? land.area * 10000 : land.area) : 16;
+  const productivityKgPerM2 = areaM2 > 0 ? (actualYieldKg / areaM2).toFixed(2) : 0;
+  const productivityTonPerHa = (productivityKgPerM2 * 10).toFixed(2);
+
+  const handleSave = (e) => {
+    e.preventDefault();
+    const newEval = {
+      id: `eval-${Date.now()}`,
+      landId: selectedLandId,
+      evaluationDate: new Date().toISOString().substring(0, 10),
+      germinationPct: parseFloat(germinationRate),
+      initialPlants: parseInt(initialPlants),
+      survivingPlants: parseInt(survivingPlants),
+      affectedPlants: parseInt(affectedPlants),
+      observedPlants: parseInt(observedPlants),
+      targetYieldKg: parseFloat(targetYieldKg),
+      actualYieldKg: parseFloat(actualYieldKg),
+      qualityGrade
+    };
+
+    setLogs([newEval, ...logs]);
+    showNotification('Evaluasi keberhasilan budidaya disimpan!');
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-emerald-950 flex items-center gap-2">
+          <Award className="w-6 h-6 text-emerald-700" />
+          Kalkulator Evaluasi Keberhasilan Budidaya
+        </h2>
+        <p className="text-xs text-stone-500">
+          Evaluasi multi-indikator: Perkecambahan, Daya Hidup, Tingkat Serangan Hama, & Produktivitas Panen.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <form onSubmit={handleSave} className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-3">
+          <h3 className="font-bold text-stone-800 text-sm border-b pb-2">Input Parameter Evaluasi</h3>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Pilih Lahan Panen</label>
+            <select 
+              value={selectedLandId} 
+              onChange={(e) => setSelectedLandId(e.target.value)}
+              className="w-full p-2 text-xs border rounded-xl"
+            >
+              {lands.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Tanaman Awal</label>
+              <input 
+                type="number" 
+                value={initialPlants} 
+                onChange={(e) => setInitialPlants(e.target.value)} 
+                className="w-full p-2 text-xs border rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Tanaman Hidup</label>
+              <input 
+                type="number" 
+                value={survivingPlants} 
+                onChange={(e) => setSurvivingPlants(e.target.value)} 
+                className="w-full p-2 text-xs border rounded-xl font-bold text-emerald-800"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Tanaman Terserang</label>
+              <input 
+                type="number" 
+                value={affectedPlants} 
+                onChange={(e) => setAffectedPlants(e.target.value)} 
+                className="w-full p-2 text-xs border rounded-xl text-red-700"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Tanaman Diamati</label>
+              <input 
+                type="number" 
+                value={observedPlants} 
+                onChange={(e) => setObservedPlants(e.target.value)} 
+                className="w-full p-2 text-xs border rounded-xl"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Target Hasil (kg)</label>
+              <input 
+                type="number" 
+                value={targetYieldKg} 
+                onChange={(e) => setTargetYieldKg(e.target.value)} 
+                className="w-full p-2 text-xs border rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Hasil Panen Aktual (kg)</label>
+              <input 
+                type="number" 
+                value={actualYieldKg} 
+                onChange={(e) => setActualYieldKg(e.target.value)} 
+                className="w-full p-2 text-xs border rounded-xl font-bold text-emerald-900"
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            className="w-full py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition"
+          >
+            Simpan Evaluasi Panen
+          </button>
+        </form>
+
+        {/* Dashboard Matrix Indicators */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
+              <span className="text-[11px] text-stone-500 block">Daya Hidup (Survival)</span>
+              <span className="text-2xl font-extrabold text-emerald-800">{survivalRate}%</span>
+              <span className="text-[10px] text-stone-400 block mt-1">{survivingPlants} dari {initialPlants} tanaman</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
+              <span className="text-[11px] text-stone-500 block">Tingkat Serangan Hama</span>
+              <span className="text-2xl font-extrabold text-amber-700">{pestRate}%</span>
+              <span className="text-[10px] text-stone-400 block mt-1">{affectedPlants} tanaman terimbas</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
+              <span className="text-[11px] text-stone-500 block">Pencapaian Target</span>
+              <span className="text-2xl font-extrabold text-emerald-900">{targetAttainment}%</span>
+              <span className="text-[10px] text-stone-400 block mt-1">{actualYieldKg}kg / {targetYieldKg}kg</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm col-span-2 sm:col-span-3 flex justify-between items-center bg-emerald-50/50">
+              <div>
+                <span className="text-xs font-bold text-emerald-950 block">Estimasi Produktivitas Lahan</span>
+                <span className="text-lg font-bold text-emerald-800">{productivityTonPerHa} Ton / Ha</span>
+                <span className="text-xs text-stone-500 block">({productivityKgPerM2} kg/m²)</span>
+              </div>
+              <div className="p-3 bg-emerald-200 text-emerald-900 rounded-xl font-bold text-xs">
+                Kategori Produktif
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CalendarDiaryView({ lands, logs, setLogs, showNotification }) {
+  const [selectedLandId, setSelectedLandId] = useState(lands[0]?.id || '');
+  const [date, setDate] = useState(new Date().toISOString().substring(0, 10));
+  const [activityType, setActivityType] = useState('Pemupukan');
+  const [cost, setCost] = useState(50000);
+  const [materialUsed, setMaterialUsed] = useState('Pupuk NPK');
+  const [notes, setNotes] = useState('');
+
+  const handleSave = (e) => {
+    e.preventDefault();
+    const newEntry = {
+      id: `cal-${Date.now()}`,
+      landId: selectedLandId,
+      date,
+      activityType,
+      cost: parseFloat(cost || 0),
+      materialUsed,
+      notes
+    };
+
+    setLogs([newEntry, ...logs]);
+    showNotification('Aktivitas berhasil ditambahkan ke buku harian!');
+    setNotes('');
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-emerald-950 flex items-center gap-2">
+          <CalendarIcon className="w-6 h-6 text-emerald-700" />
+          Buku Harian & Kalender Kegiatan Budidaya
+        </h2>
+        <p className="text-xs text-stone-500">
+          Pencatatan rekap aktivitas operasional, biaya pengeluaran, dan jadwal kerja harian.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <form onSubmit={handleSave} className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-3">
+          <h3 className="font-bold text-stone-800 text-sm border-b pb-2">Tambah Catatan Kegiatan</h3>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Lahan</label>
+            <select 
+              value={selectedLandId} 
+              onChange={(e) => setSelectedLandId(e.target.value)}
+              className="w-full p-2 text-xs border rounded-xl"
+            >
+              {lands.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Tanggal</label>
+            <input 
+              type="date" 
+              value={date} 
+              onChange={(e) => setDate(e.target.value)} 
+              className="w-full p-2 text-xs border rounded-xl"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Jenis Kegiatan</label>
+            <select 
+              value={activityType} 
+              onChange={(e) => setActivityType(e.target.value)}
+              className="w-full p-2 text-xs border rounded-xl"
+            >
+              <option value="Pengolahan Lahan">Pengolahan Lahan</option>
+              <option value="Penanaman">Penanaman</option>
+              <option value="Penyiraman">Penyiraman</option>
+              <option value="Pemupukan">Pemupukan</option>
+              <option value="Penyiangan">Penyiangan</option>
+              <option value="Pengendalian Hama">Pengendalian Hama</option>
+              <option value="Panen">Panen</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Bahan / Alat Digunakan</label>
+            <input 
+              type="text" 
+              value={materialUsed} 
+              onChange={(e) => setMaterialUsed(e.target.value)} 
+              className="w-full p-2 text-xs border rounded-xl"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Biaya Operasional (Rp)</label>
+            <input 
+              type="number" 
+              value={cost} 
+              onChange={(e) => setCost(e.target.value)} 
+              className="w-full p-2 text-xs border rounded-xl font-bold"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Catatan Tambahan</label>
+            <textarea 
+              value={notes} 
+              onChange={(e) => setNotes(e.target.value)} 
+              className="w-full p-2 text-xs border rounded-xl"
+              rows="2"
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            className="w-full py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition"
+          >
+            Simpan Aktivitas
+          </button>
+        </form>
+
+        {/* Timeline Activities */}
+        <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+          <h3 className="font-bold text-stone-800 text-sm mb-4">Riwayat Jurnal Aktivitas</h3>
+          <div className="space-y-4">
+            {logs.map((log) => (
+              <div key={log.id} className="p-3 border border-stone-200 rounded-xl bg-stone-50/50 flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-bold text-emerald-900">{log.activityType}</span>
+                    <span className="text-[10px] bg-stone-200 text-stone-700 px-2 py-0.5 rounded">{log.date}</span>
+                  </div>
+                  <p className="text-xs text-stone-600">Bahan: {log.materialUsed}</p>
+                  {log.notes && <p className="text-[11px] text-stone-400 italic mt-0.5">{log.notes}</p>}
+                </div>
+                <span className="text-xs font-bold text-emerald-700">
+                  Rp {log.cost.toLocaleString('id-ID')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ComplaintsForumView({ complaints, setComplaints, showNotification }) {
+  const [farmerName, setFarmerName] = useState('');
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [location, setLocation] = useState('Desa Sukamaju');
+  const [commodity, setCommodity] = useState('Bawang Merah');
+  const [growthStage, setGrowthStage] = useState('Vegetatif');
+  const [category, setCategory] = useState('Daun menguning');
+  const [description, setDescription] = useState('');
+
+  const [replyInput, setReplyInput] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const newComplaint = {
+      id: `comp-${Date.now()}`,
+      farmerName: isAnonymous ? 'Petani Anonim' : (farmerName || 'Petani Cerdas'),
+      isAnonymous,
+      location,
+      commodity,
+      growthStage,
+      category,
+      description,
+      onset: 'Baru saja',
+      affectedArea: 'Petak Utama',
+      previousAction: 'Nihil',
+      status: 'Menunggu tanggapan',
+      dateSubmitted: new Date().toISOString().substring(0, 10),
+      replies: []
+    };
+
+    setComplaints([newComplaint, ...complaints]);
+    showNotification('Keluhan berhasil terkirim ke sistem konsultasi!');
+    setDescription('');
+  };
+
+  const handleAddReply = (complaintId) => {
+    if (!replyInput.trim()) return;
+
+    setComplaints(complaints.map(c => {
+      if (c.id === complaintId) {
+        return {
+          ...c,
+          status: 'Sudah ditanggapi',
+          replies: [
+            ...c.replies,
+            {
+              author: 'Penyuluh Pertanian Local (Simulasi)',
+              role: 'Penyuluh Lapangan',
+              date: new Date().toLocaleString('id-ID'),
+              content: replyInput
+            }
+          ]
+        };
+      }
+      return c;
+    }));
+
+    setReplyInput('');
+    showNotification('Tanggapan penyuluh berhasil ditambahkan.');
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-emerald-950 flex items-center gap-2">
+          <MessageSquare className="w-6 h-6 text-emerald-700" />
+          Forum Keluhan & Konsultasi Pertanian
+        </h2>
+        <p className="text-xs text-stone-500">
+          Sampaikan masalah hama, penyakit, dan kendala tanah untuk mendapatkan tanggapan teknis.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <form onSubmit={handleSubmit} className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-3">
+          <h3 className="font-bold text-stone-800 text-sm border-b pb-2">Sampaikan Keluhan Baru</h3>
+
+          <div className="flex items-center gap-2">
+            <input 
+              type="checkbox" 
+              checked={isAnonymous} 
+              onChange={(e) => setIsAnonymous(e.target.checked)} 
+              className="rounded"
+            />
+            <label className="text-xs text-stone-600 font-semibold">Kirim Anonim</label>
+          </div>
+
+          {!isAnonymous && (
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Nama Petani</label>
+              <input 
+                type="text" 
+                value={farmerName} 
+                onChange={(e) => setFarmerName(e.target.value)} 
+                className="w-full p-2 text-xs border rounded-xl"
+                placeholder="Nama Anda..."
+              />
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Komoditas</label>
+              <input 
+                type="text" 
+                value={commodity} 
+                onChange={(e) => setCommodity(e.target.value)} 
+                className="w-full p-2 text-xs border rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Kategori Keluhan</label>
+              <select 
+                value={category} 
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full p-2 text-xs border rounded-xl"
+              >
+                <option value="Daun menguning">Daun menguning</option>
+                <option value="Pertumbuhan terhambat">Pertumbuhan terhambat</option>
+                <option value="Hama">Hama</option>
+                <option value="Penyakit tanaman">Penyakit tanaman</option>
+                <option value="Kekurangan air">Kekurangan air</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Deskripsi Permasalahan</label>
+            <textarea 
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)} 
+              className="w-full p-2 text-xs border rounded-xl"
+              rows="3"
+              placeholder="Ceritakan gejala penyakit atau hama..."
+              required
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            className="w-full py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition"
+          >
+            Kirim Konsultasi
+          </button>
+        </form>
+
+        {/* Complaints Thread Display */}
+        <div className="lg:col-span-2 space-y-4">
+          {complaints.map((c) => (
+            <div key={c.id} className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-3">
+              <div className="flex justify-between items-start border-b pb-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-stone-800 text-sm">{c.isAnonymous ? 'Petani Anonim' : c.farmerName}</span>
+                    <span className="text-[10px] bg-stone-100 text-stone-600 px-2 py-0.5 rounded">{c.commodity}</span>
+                  </div>
+                  <span className="text-[11px] text-stone-400">{c.location} • {c.dateSubmitted}</span>
+                </div>
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
+                  c.status === 'Sudah ditanggapi' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                }`}>
+                  {c.status}
+                </span>
+              </div>
+
+              <p className="text-xs text-stone-700 leading-relaxed">{c.description}</p>
+
+              {/* Replies Thread */}
+              {c.replies.length > 0 && (
+                <div className="space-y-2 pt-2 border-t">
+                  <span className="text-[11px] font-bold text-emerald-900">Tanggapan Penyuluh:</span>
+                  {c.replies.map((r, idx) => (
+                    <div key={idx} className="bg-emerald-50/60 p-3 rounded-xl border border-emerald-100 text-xs">
+                      <div className="flex justify-between font-bold text-emerald-950 mb-1">
+                        <span>{r.author} ({r.role})</span>
+                        <span className="text-[10px] text-stone-400 font-normal">{r.date}</span>
+                      </div>
+                      <p className="text-stone-700 text-[11px]">{r.content}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Quick Reply Box */}
+              <div className="flex gap-2 pt-2">
+                <input 
+                  type="text" 
+                  placeholder="Beri balasan simulasi penyuluh..." 
+                  value={replyInput}
+                  onChange={(e) => setReplyInput(e.target.value)}
+                  className="flex-1 p-2 text-xs border rounded-xl"
+                />
+                <button 
+                  onClick={() => handleAddReply(c.id)}
+                  className="px-3 py-2 bg-emerald-800 text-white rounded-xl text-xs font-semibold"
+                >
+                  Balas
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LandManagerView({ lands, setLands, showNotification, setActiveTab }) {
+  const [name, setName] = useState('');
+  const [location, setLocation] = useState('');
+  const [area, setArea] = useState(100);
+  const [unit, setUnit] = useState('m2');
+  const [commodity, setCommodity] = useState('Cabai Rawit');
+  const [soilType, setSoilType] = useState('Lempung');
+
+  const handleAdd = (e) => {
+    e.preventDefault();
+    const newLand = {
+      id: `land-${Date.now()}`,
+      name,
+      location,
+      area: parseFloat(area),
+      unit,
+      commodity,
+      soilType,
+      plantingDate: new Date().toISOString().substring(0, 10),
+      status: 'Persiapan'
+    };
+
+    setLands([...lands, newLand]);
+    showNotification('Lahan baru berhasil didaftarkan!');
+    setName('');
+  };
+
+  const handleDelete = (id) => {
+    setLands(lands.filter(l => l.id !== id));
+    showNotification('Data lahan dihapus.');
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-emerald-950 flex items-center gap-2">
+          <MapPin className="w-6 h-6 text-emerald-700" />
+          Manajemen Lahan Pertanian
+        </h2>
+        <p className="text-xs text-stone-500">
+          Kelola lokasi petak tanam, komoditas, dan integrasikan langsung ke kalkulator pupuk.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <form onSubmit={handleAdd} className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-3">
+          <h3 className="font-bold text-stone-800 text-sm border-b pb-2">Tambah Petak Lahan</h3>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Nama Lahan</label>
+            <input 
+              type="text" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              className="w-full p-2 text-xs border rounded-xl"
+              placeholder="Contoh: Petak Bawang Timur"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Lokasi Lahan</label>
+            <input 
+              type="text" 
+              value={location} 
+              onChange={(e) => setLocation(e.target.value)} 
+              className="w-full p-2 text-xs border rounded-xl"
+              placeholder="Desa / Blok"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Luas</label>
+              <input 
+                type="number" 
+                value={area} 
+                onChange={(e) => setArea(e.target.value)} 
+                className="w-full p-2 text-xs border rounded-xl font-bold"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Satuan</label>
+              <select 
+                value={unit} 
+                onChange={(e) => setUnit(e.target.value)}
+                className="w-full p-2 text-xs border rounded-xl"
+              >
+                <option value="m2">m²</option>
+                <option value="ha">Hektare (ha)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-stone-600 block mb-1">Komoditas Utama</label>
+            <input 
+              type="text" 
+              value={commodity} 
+              onChange={(e) => setCommodity(e.target.value)} 
+              className="w-full p-2 text-xs border rounded-xl"
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            className="w-full py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition"
+          >
+            Simpan Lahan
+          </button>
+        </form>
+
+        {/* Lands Grid Cards */}
+        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {lands.map((land) => (
+            <div key={land.id} className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-start mb-2">
+                  <h4 className="font-bold text-stone-800 text-base">{land.name}</h4>
+                  <button onClick={() => handleDelete(land.id)} className="text-red-500 hover:text-red-700">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-xs text-stone-500 mb-3">{land.location}</p>
+
+                <div className="space-y-1 text-xs text-stone-700 bg-stone-50 p-3 rounded-xl">
+                  <div><span className="text-stone-400">Luas:</span> <span className="font-bold">{land.area} {land.unit}</span></div>
+                  <div><span className="text-stone-400">Komoditas:</span> <span className="font-semibold text-emerald-800">{land.commodity}</span></div>
+                  <div><span className="text-stone-400">Jenis Tanah:</span> {land.soilType}</div>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setActiveTab('kalkulator-pupuk')}
+                className="mt-4 w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl transition text-center"
+              >
+                Hitung Pupuk Lahan Ini →
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReportsExportView({ lands, germinationLogs, growthLogs, cultivationLogs, complaints, calendarLogs }) {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-bold text-emerald-950 flex items-center gap-2">
+            <FileText className="w-6 h-6 text-emerald-700" />
+            Laporan Terintegrasi & Ekspor Data
+          </h2>
+          <p className="text-xs text-stone-500">
+            Cetak ringkasan seluruh data operasional budidaya tanaman.
+          </p>
+        </div>
+
+        <button 
+          onClick={() => window.print()} 
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold shadow transition"
+        >
+          <Printer className="w-4 h-4" />
+          Cetak Dokumen
+        </button>
+      </div>
+
+      <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-6 print:shadow-none print:border-none">
+        <div className="border-b pb-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-black text-emerald-950">TANI CERDAS</h1>
+            <p className="text-xs text-stone-500">Laporan Ringkasan Eksekutif Budidaya Pertanian</p>
+          </div>
+          <div className="text-right text-xs text-stone-400">
+            Dicetak: {new Date().toLocaleDateString('id-ID')}
+          </div>
+        </div>
+
+        {/* Lands Summary */}
+        <div>
+          <h3 className="font-bold text-stone-800 text-sm mb-2">1. Ringkasan Lahan Terdaftar</h3>
+          <table className="w-full text-left text-xs border">
+            <thead className="bg-stone-100">
+              <tr>
+                <th className="p-2 border">Nama Lahan</th>
+                <th className="p-2 border">Komoditas</th>
+                <th className="p-2 border">Luas</th>
+                <th className="p-2 border">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lands.map(l => (
+                <tr key={l.id}>
+                  <td className="p-2 border">{l.name}</td>
+                  <td className="p-2 border">{l.commodity}</td>
+                  <td className="p-2 border">{l.area} {l.unit}</td>
+                  <td className="p-2 border">{l.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Cultivation Financial Log */}
+        <div>
+          <h3 className="font-bold text-stone-800 text-sm mb-2">2. Rekap Biaya Operasional Buku Harian</h3>
+          <table className="w-full text-left text-xs border">
+            <thead className="bg-stone-100">
+              <tr>
+                <th className="p-2 border">Tanggal</th>
+                <th className="p-2 border">Kegiatan</th>
+                <th className="p-2 border">Bahan</th>
+                <th className="p-2 border text-right">Biaya (Rp)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {calendarLogs.map(c => (
+                <tr key={c.id}>
+                  <td className="p-2 border">{c.date}</td>
+                  <td className="p-2 border">{c.activityType}</td>
+                  <td className="p-2 border">{c.materialUsed}</td>
+                  <td className="p-2 border text-right font-bold">Rp {c.cost.toLocaleString('id-ID')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
